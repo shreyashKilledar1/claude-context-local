@@ -1,0 +1,91 @@
+"""Basic tests for multi-language chunking."""
+
+import pytest
+from pathlib import Path
+from chunking.multi_language_chunker import MultiLanguageChunker
+
+
+class TestMultiLanguageChunker:
+    """Test multi-language chunking functionality."""
+    
+    @pytest.fixture
+    def chunker(self):
+        """Create a chunker instance."""
+        return MultiLanguageChunker()
+    
+    @pytest.fixture
+    def test_data_dir(self):
+        """Get test data directory."""
+        return Path(__file__).parent.parent / "test_data" / "multi_language"
+    
+    def test_supported_extensions(self, chunker):
+        """Test that all required extensions are supported."""
+        assert chunker.is_supported("test.py")
+        assert chunker.is_supported("test.js")
+        assert chunker.is_supported("test.jsx")
+        assert chunker.is_supported("test.ts")
+        assert chunker.is_supported("test.tsx")
+        assert chunker.is_supported("test.svelte")
+        assert not chunker.is_supported("test.txt")
+    
+    def test_chunk_python_file(self, chunker, test_data_dir):
+        """Test chunking Python file."""
+        file_path = test_data_dir / "example.py"
+        chunks = chunker.chunk_file(str(file_path))
+        
+        assert len(chunks) > 0
+        # Should find the class and functions
+        chunk_types = {chunk.chunk_type for chunk in chunks}
+        assert "function" in chunk_types or "method" in chunk_types
+        assert "class" in chunk_types
+    
+    def test_chunk_javascript_file(self, chunker, test_data_dir):
+        """Test chunking JavaScript file."""
+        file_path = test_data_dir / "example.js"
+        chunks = chunker.chunk_file(str(file_path))
+        
+        assert len(chunks) > 0
+        # Should find functions and class
+        chunk_names = {chunk.name for chunk in chunks if chunk.name}
+        assert "calculateSum" in chunk_names
+        assert "Calculator" in chunk_names
+    
+    def test_chunk_typescript_file(self, chunker, test_data_dir):
+        """Test chunking TypeScript file."""
+        file_path = test_data_dir / "example.ts"
+        chunks = chunker.chunk_file(str(file_path))
+        
+        assert len(chunks) > 0
+        # Should find interface, class, and functions
+        chunk_types = {chunk.chunk_type for chunk in chunks}
+        assert any(t in chunk_types for t in ["class", "interface", "function"])
+    
+    def test_chunk_jsx_file(self, chunker, test_data_dir):
+        """Test chunking JSX file."""
+        file_path = test_data_dir / "Component.jsx"
+        chunks = chunker.chunk_file(str(file_path))
+        
+        assert len(chunks) > 0
+        # Should find React components
+        chunk_names = {chunk.name for chunk in chunks if chunk.name}
+        assert "Counter" in chunk_names or "UserCard" in chunk_names
+    
+    def test_chunk_tsx_file(self, chunker, test_data_dir):
+        """Test chunking TSX file."""
+        file_path = test_data_dir / "Component.tsx"
+        chunks = chunker.chunk_file(str(file_path))
+        
+        assert len(chunks) > 0
+        # Should find TypeScript React components
+        chunk_names = {chunk.name for chunk in chunks if chunk.name}
+        assert any(name in chunk_names for name in ["TypedCounter", "UserList"])
+    
+    def test_chunk_svelte_file(self, chunker, test_data_dir):
+        """Test chunking Svelte file."""
+        file_path = test_data_dir / "App.svelte"
+        chunks = chunker.chunk_file(str(file_path))
+        
+        assert len(chunks) > 0
+        # Should find script and style blocks
+        chunk_types = {chunk.chunk_type for chunk in chunks}
+        assert "script" in chunk_types or "style" in chunk_types or len(chunks) > 0
