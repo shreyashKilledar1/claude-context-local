@@ -70,7 +70,7 @@ class CodeIndexManager:
         if self._metadata_db is None:
             self._metadata_db = SqliteDict(
                 str(self.metadata_path), 
-                autocommit=True,
+                autocommit=False,
                 journal_mode="WAL"
             )
         return self._metadata_db
@@ -145,6 +145,13 @@ class CodeIndexManager:
             }
         
         self._logger.info(f"Added {len(embedding_results)} embeddings to index")
+        
+        # Commit metadata in a single transaction for performance
+        try:
+            self.metadata_db.commit()
+        except Exception:
+            # If commit is unavailable for some reason, continue without failing
+            pass
         
         # Update statistics
         self._update_stats()
@@ -295,6 +302,12 @@ class CodeIndexManager:
         # Instead, we'll rebuild the index periodically or on demand
         
         self._logger.info(f"Removed {len(chunks_to_remove)} chunks from {file_path}")
+        
+        # Commit removals in batch
+        try:
+            self.metadata_db.commit()
+        except Exception:
+            pass
         return len(chunks_to_remove)
     
     def save_index(self):

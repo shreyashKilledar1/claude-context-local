@@ -23,6 +23,20 @@ class MultiLanguageChunker:
         '.svelte' # Svelte
     }
     
+    # Common large/build/tooling directories to skip during traversal
+    DEFAULT_IGNORED_DIRS = {
+        '__pycache__', '.git', '.hg', '.svn',
+        '.venv', 'venv', 'env', '.env', '.direnv',
+        'node_modules', '.pnpm-store', '.yarn',
+        '.pytest_cache', '.mypy_cache', '.ruff_cache', '.pytype', '.ipynb_checkpoints',
+        'build', 'dist', 'out', 'public',
+        '.next', '.nuxt', '.svelte-kit', '.angular', '.astro', '.vite',
+        '.cache', '.parcel-cache', '.turbo',
+        'coverage', '.coverage', '.nyc_output',
+        '.gradle', '.idea', '.vscode', '.docusaurus', '.vercel', '.serverless', '.terraform', '.mvn', '.tox',
+        'target', 'bin', 'obj'
+    }
+    
     def __init__(self, root_path: Optional[str] = None):
         """Initialize multi-language chunker.
         
@@ -196,8 +210,8 @@ class MultiLanguageChunker:
         # Find all files with supported extensions
         for ext in valid_extensions:
             for file_path in dir_path.rglob(f'*{ext}'):
-                # Skip node_modules, venv, etc.
-                if any(part in file_path.parts for part in ['node_modules', 'venv', '.venv', '__pycache__']):
+                # Skip common large/build/tooling directories
+                if any(part in self.DEFAULT_IGNORED_DIRS for part in file_path.parts):
                     continue
                 
                 try:

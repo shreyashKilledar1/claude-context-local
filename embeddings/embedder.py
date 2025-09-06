@@ -1,6 +1,7 @@
 """EmbeddingGemma wrapper for generating code embeddings."""
 
 import os
+from pathlib import Path
 import logging
 from typing import List, Union, Optional, Dict, Any
 from dataclasses import dataclass
@@ -10,6 +11,11 @@ try:
     from sentence_transformers import SentenceTransformer
 except ImportError:
     SentenceTransformer = None
+
+try:
+    import torch
+except Exception:
+    torch = None
 
 from chunking.python_ast_chunker import CodeChunk
 
@@ -29,7 +35,7 @@ class CodeEmbedder:
         self, 
         model_name: str = "google/embeddinggemma-300m",
         cache_dir: Optional[str] = None,
-        device: str = "cpu"
+        device: str = "auto"
     ):
         self.model_name = model_name
         self.cache_dir = cache_dir
@@ -56,13 +62,32 @@ class CodeEmbedder:
             )
         
         self._logger.info(f"Loading model: {self.model_name}")
+
+        # If the model appears to be cached locally, enable offline mode to avoid network HEAD/GET checks
+        local_model_dir = None
+        try:
+            if self._is_model_cached():
+                os.environ.setdefault("HF_HUB_OFFLINE", "1")
+                os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+                self._logger.info("Model cache detected. Enabling offline mode for faster startup.")
+                # Prefer loading directly from local cache path to avoid any remote HEAD/GET
+                local_model_dir = self._find_local_model_dir()
+                if local_model_dir:
+                    self._logger.info(f"Loading model from local cache path: {local_model_dir}")
+        except Exception as _e:
+            # Best-effort; continue without failing if detection has issues
+            self._logger.debug(f"Offline mode detection skipped: {_e}")
         
         try:
+            model_source = str(local_model_dir) if local_model_dir else self.model_name
+            resolved_device = self._resolve_device(self.device)
             self._model = SentenceTransformer(
-                self.model_name,
+                model_source,
                 cache_folder=self.cache_dir,
-                device=self.device
+                device=resolved_device
             )
+            # Persist resolved device for later info
+            self.device = resolved_device
             self._logger.info(f"Model loaded successfully on device: {self._model.device}")
             
         except Exception as e:
@@ -110,7 +135,8 @@ class CodeEmbedder:
         prompt = self.create_embedding_prompt(chunk)
         
         # Use encode_document for code content
-        embedding = self.model.encode_document([prompt])[0]
+        # Disable progress bars for small, single-item encode
+        embedding = self.model.encode_document([prompt], show_progress_bar=False)[0]
         
         # Create unique chunk ID
         chunk_id = f"{chunk.relative_path}:{chunk.start_line}-{chunk.end_line}:{chunk.chunk_type}"
@@ -141,7 +167,7 @@ class CodeEmbedder:
             metadata=metadata
         )
     
-    def embed_chunks(self, chunks: List[CodeChunk], batch_size: int = 8) -> List[EmbeddingResult]:
+    def embed_chunks(self, chunks: List[CodeChunk], batch_size: int = 32) -> List[EmbeddingResult]:
         """Generate embeddings for multiple chunks with batching."""
         results = []
         
@@ -153,7 +179,7 @@ class CodeEmbedder:
             batch_prompts = [self.create_embedding_prompt(chunk) for chunk in batch]
             
             # Generate embeddings for batch
-            batch_embeddings = self.model.encode_document(batch_prompts)
+            batch_embeddings = self.model.encode_document(batch_prompts, show_progress_bar=False)
             
             # Create results
             for j, (chunk, embedding) in enumerate(zip(batch, batch_embeddings)):
@@ -211,3 +237,78 @@ class CodeEmbedder:
             "device": str(self._model.device),
             "status": "loaded"
         }
+
+    def _is_model_cached(self) -> bool:
+        """Best-effort check if the target model seems cached in cache_dir.
+
+        We look for a directory under cache_dir that contains the model key
+        (final path segment of model name) and a SentenceTransformers config file.
+        """
+        if not self.cache_dir:
+            return False
+        try:
+            model_key = self.model_name.split('/')[-1].lower()
+            cache_root = Path(self.cache_dir)
+            if not cache_root.exists():
+                return False
+            for path in cache_root.rglob('config_sentence_transformers.json'):
+                parent_str = str(path.parent).lower()
+                if model_key in parent_str:
+                    return True
+            # Fallback: look for folders that include the model key
+            for d in cache_root.glob('**/*'):
+                if d.is_dir() and model_key in d.name.lower():
+                    if (d / 'config_sentence_transformers.json').exists() or (d / 'README.md').exists():
+                        return True
+        except Exception:
+            return False
+        return False
+
+    def _find_local_model_dir(self) -> Optional[Path]:
+        """Locate the cached model directory if available."""
+        if not self.cache_dir:
+            return None
+        try:
+            model_key = self.model_name.split('/')[-1].lower()
+            cache_root = Path(self.cache_dir)
+            if not cache_root.exists():
+                return None
+            for path in cache_root.rglob('config_sentence_transformers.json'):
+                parent = path.parent
+                if model_key in str(parent).lower():
+                    return parent
+            # Fallback: return the most likely directory matching the model key
+            candidates = [d for d in cache_root.glob('**/*') if d.is_dir() and model_key in d.name.lower()]
+            return candidates[0] if candidates else None
+        except Exception:
+            return None
+
+    def _resolve_device(self, requested: Optional[str]) -> str:
+        """Resolve target device string.
+        - "auto": prefer cuda, then mps, else cpu
+        - explicit values are validated and coerced to available devices
+        """
+        req = (requested or "auto").lower()
+        # If torch is not available, default to CPU
+        if torch is None:
+            return "cpu"
+        if req in ("auto", "none", ""):
+            if torch.cuda.is_available():
+                return "cuda"
+            # MPS for Apple Silicon
+            try:
+                if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+                    return "mps"
+            except Exception:
+                pass
+            return "cpu"
+        # Validate explicit devices
+        if req.startswith("cuda"):
+            return "cuda" if torch.cuda.is_available() else "cpu"
+        if req == "mps":
+            try:
+                return "mps" if hasattr(torch.backends, 'mps') and torch.backends.mps.is_available() else "cpu"
+            except Exception:
+                return "cpu"
+        # Default fallback
+        return "cpu"

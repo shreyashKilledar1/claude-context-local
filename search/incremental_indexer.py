@@ -195,27 +195,28 @@ class IncrementalIndexer:
             # Filter supported files
             supported_files = [f for f in all_files if self.chunker.is_supported(f)]
             
-            # Collect all chunks and embeddings
+            # Collect all chunks first, then embed in a single pass for efficiency
             all_chunks = []
-            all_embedding_results = []
-            
             for file_path in supported_files:
                 full_path = Path(project_path) / file_path
                 try:
                     chunks = self.chunker.chunk_file(str(full_path))
                     if chunks:
-                        # Generate embeddings
-                        embedding_results = self.embedder.embed_chunks(chunks)
-                        
-                        # Update metadata
-                        for chunk, embedding_result in zip(chunks, embedding_results):
-                            embedding_result.metadata['project_name'] = project_name
-                            embedding_result.metadata['content'] = chunk.content
-                        
                         all_chunks.extend(chunks)
-                        all_embedding_results.extend(embedding_results)
                 except Exception as e:
-                    logger.warning(f"Failed to index {file_path}: {e}")
+                    logger.warning(f"Failed to chunk {file_path}: {e}")
+
+            # Embed all chunks in one batched call
+            all_embedding_results = []
+            if all_chunks:
+                try:
+                    all_embedding_results = self.embedder.embed_chunks(all_chunks)
+                    # Update metadata
+                    for chunk, embedding_result in zip(all_chunks, all_embedding_results):
+                        embedding_result.metadata['project_name'] = project_name
+                        embedding_result.metadata['content'] = chunk.content
+                except Exception as e:
+                    logger.warning(f"Embedding failed: {e}")
             
             # Add all embeddings to index at once
             if all_embedding_results:
@@ -300,26 +301,27 @@ class IncrementalIndexer:
         # Filter supported files
         supported_files = [f for f in files_to_index if self.chunker.is_supported(f)]
         
-        # Collect all chunks and embeddings
-        all_embedding_results = []
-        
+        # Collect all chunks first, then embed in a single pass
+        chunks_to_embed = []
         for file_path in supported_files:
             full_path = Path(project_path) / file_path
             try:
                 chunks = self.chunker.chunk_file(str(full_path))
                 if chunks:
-                    # Generate embeddings
-                    embedding_results = self.embedder.embed_chunks(chunks)
-                    
-                    # Update metadata
-                    for chunk, embedding_result in zip(chunks, embedding_results):
-                        embedding_result.metadata['project_name'] = project_name
-                        embedding_result.metadata['content'] = chunk.content
-                    
-                    all_embedding_results.extend(embedding_results)
-                    logger.debug(f"Added {len(embedding_results)} chunks from {file_path}")
+                    chunks_to_embed.extend(chunks)
             except Exception as e:
-                logger.warning(f"Failed to index {file_path}: {e}")
+                logger.warning(f"Failed to chunk {file_path}: {e}")
+
+        all_embedding_results = []
+        if chunks_to_embed:
+            try:
+                all_embedding_results = self.embedder.embed_chunks(chunks_to_embed)
+                # Update metadata
+                for chunk, embedding_result in zip(chunks_to_embed, all_embedding_results):
+                    embedding_result.metadata['project_name'] = project_name
+                    embedding_result.metadata['content'] = chunk.content
+            except Exception as e:
+                logger.warning(f"Embedding failed: {e}")
         
         # Add all embeddings to index at once
         if all_embedding_results:

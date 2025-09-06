@@ -54,8 +54,16 @@ class MerkleDAG:
         self.nodes: Dict[str, MerkleNode] = {}
         self.root_node: Optional[MerkleNode] = None
         self.ignore_patterns: Set[str] = {
-            '__pycache__', '.git', '.venv', 'venv', 'env',
-            'node_modules', '.pytest_cache', '.mypy_cache',
+            '__pycache__', '.git', '.hg', '.svn',
+            '.venv', 'venv', 'env', '.env', '.direnv',
+            'node_modules', '.pnpm-store', '.yarn',
+            '.pytest_cache', '.mypy_cache', '.ruff_cache', '.pytype', '.ipynb_checkpoints',
+            'build', 'dist', 'out', 'public',
+            '.next', '.nuxt', '.svelte-kit', '.angular', '.astro', '.vite',
+            '.cache', '.parcel-cache', '.turbo',
+            'coverage', '.coverage', '.nyc_output',
+            '.gradle', '.idea', '.vscode', '.docusaurus', '.vercel', '.serverless', '.terraform', '.mvn', '.tox',
+            'target', 'bin', 'obj',
             '*.pyc', '*.pyo', '.DS_Store', 'Thumbs.db'
         }
     

@@ -43,6 +43,7 @@ _index_manager = None
 _searcher = None
 _storage_dir = None
 _current_project = None  # Track which project is currently active
+_model_preload_task_started = False
 
 
 def get_storage_dir() -> Path:
@@ -121,6 +122,32 @@ def get_embedder() -> CodeEmbedder:
         _embedder = CodeEmbedder(cache_dir=str(cache_dir))
         logger.info("Embedder initialized")
     return _embedder
+
+
+def _maybe_start_model_preload() -> None:
+    """Preload the embedding model in the background to avoid cold-start delays."""
+    global _model_preload_task_started
+    if _model_preload_task_started:
+        return
+    _model_preload_task_started = True
+
+    async def _preload():
+        try:
+            logger.info("Starting background model preload")
+            # Access the model property to trigger lazy load
+            _ = get_embedder().model
+            logger.info("Background model preload completed")
+        except Exception as e:
+            logger.warning(f"Background model preload failed: {e}")
+
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            loop.create_task(_preload())
+        else:
+            loop.run_until_complete(_preload())
+    except Exception as e:
+        logger.debug(f"Model preload scheduling skipped: {e}")
 
 
 def get_index_manager(project_path: str = None) -> CodeIndexManager:
@@ -408,6 +435,9 @@ def index_directory(
     try:
         from search.incremental_indexer import IncrementalIndexer
         
+        # Start model preload early to overlap with Merkle/IO work
+        _maybe_start_model_preload()
+
         directory_path = Path(directory_path).resolve()
         if not directory_path.exists():
             return json.dumps({"error": f"Directory does not exist: {directory_path}"})
