@@ -255,15 +255,6 @@ This is a research project focused on intelligent code chunking and search. Feel
 
 MIT License - feel free to modify and use as needed.
 
-## Remote Install (curl | bash)
+## Inspiration
 
-```bash
-# Installs uv (if needed), clones repo, installs deps, downloads model
-curl -fsSL https://raw.githubusercontent.com/FarhanAliRaza/claude-context-local/main/scripts/install.sh | bash
-```
-
-After install, register the MCP server (stdio mode):
-
-```bash
-claude mcp add code-search --scope user -- uv run -p ~/.local/share/claude-context-local ~/.local/share/claude-context-local/mcp_server/server.py
-```
+This project draws inspiration from [zilliztech/claude-context](https://github.com/zilliztech/claude-context). We adapted the concepts to a Python implementation with fully local embeddings.
