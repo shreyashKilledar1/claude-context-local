@@ -48,12 +48,18 @@ Claude’s code context is powerful, but sending your code to the cloud costs to
 
 - Python 3.12+
 - Disk: 1–2 GB free (model + caches + index)
-- Optional: NVIDIA GPU (CUDA 11/12) for FAISS acceleration; Apple Silicon (MPS) for embedding acceleration
+- Optional: NVIDIA GPU (CUDA 11/12) for FAISS acceleration; Apple Silicon (MPS) for embedding acceleration. These also speed up running the embedding model with SentenceTransformer, but everything still works on CPU.
 
 ## Install (one‑liner)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/FarhanAliRaza/claude-context-local/main/scripts/install.sh | bash
+```
+
+If your system doesn't have `curl`, you can use `wget`:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/FarhanAliRaza/claude-context-local/main/scripts/install.sh | bash
 ```
 
 What this does:
@@ -111,25 +117,25 @@ claude-context-local/
 ### Data flow
 
 ```mermaid
-flowchart TD
-    A[Claude Code (MCP client)] -->|tools/call: index_directory| B(MCP Server)
+graph TD
+    A["Claude Code (MCP client)"] -->|index_directory| B["MCP Server"]
     B --> C{IncrementalIndexer}
-    C --> D[ChangeDetector\n(Merkle DAG)]
-    C --> E[MultiLanguageChunker]
-    E --> F[Code Chunks]
-    C --> G[CodeEmbedder\n(EmbeddingGemma)]
-    G --> H[Embeddings]
-    C --> I[CodeIndexManager\n(FAISS CPU/GPU)]
+    C --> D["ChangeDetector<br/>(Merkle DAG)"]
+    C --> E["MultiLanguageChunker"]
+    E --> F["Code Chunks"]
+    C --> G["CodeEmbedder<br/>(EmbeddingGemma)"]
+    G --> H["Embeddings"]
+    C --> I["CodeIndexManager<br/>(FAISS CPU/GPU)"]
     H --> I
-    D --> J[SnapshotManager]
+    D --> J["SnapshotManager"]
     C --> J
-    B -->|tools/call: search_code| K[Searcher]
+    B -->|search_code| K["Searcher"]
     K --> I
 ```
 
 ## Intelligent Chunking
 
-The system uses Python AST for `.py` and tree-sitter for JS/TS/JSX/TSX/Svelte to create semantically meaningful chunks:
+The system uses tree-sitter for PY/JS/TS/JSX/TSX/Svelte to create semantically meaningful chunks:
 
 - **Complete functions** with docstrings and decorators
 - **Full classes** with all methods as separate chunks
@@ -140,7 +146,6 @@ Each chunk includes rich metadata:
 
 - File path and folder structure
 - Function/class names and relationships
-- Semantic tags (auth, database, api, etc.)
 - Complexity scores
 - Line numbers for precise location
 
@@ -156,7 +161,7 @@ The system uses `google/embeddinggemma-300m` by default.
 
 Notes:
 
-- Download size: ~0.3–1.2 GB on disk depending on variant and caches
+- Download size: ~1.2–2 GB on disk depending on variant and caches
 - Device selection: auto (CUDA on NVIDIA, MPS on Apple Silicon, else CPU)
 - You can pre-download via installer or at first use
 - FAISS backend: CPU by default. If an NVIDIA GPU is detected, the installer
@@ -196,10 +201,6 @@ and prefer offline loads for speed and reliability.
 - JSX (`.jsx`), TSX (`.tsx`)
 - Svelte (`.svelte`)
 
-### Ignored directories (for speed and noise reduction)
-
-`node_modules`, `.venv`, `venv`, `env`, `.env`, `.direnv`, `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.pytype`, `.ipynb_checkpoints`, `build`, `dist`, `out`, `public`, `.next`, `.nuxt`, `.svelte-kit`, `.angular`, `.astro`, `.vite`, `.cache`, `.parcel-cache`, `.turbo`, `coverage`, `.coverage`, `.nyc_output`, `.gradle`, `.idea`, `.vscode`, `.docusaurus`, `.vercel`, `.serverless`, `.terraform`, `.mvn`, `.tox`, `target`, `bin`, `obj`
-
 ## Storage
 
 Data is stored in the configured storage directory:
@@ -236,6 +237,10 @@ Tips:
 4. **No search results**: Verify the codebase was indexed successfully
 5. **FAISS GPU not used**: Ensure `nvidia-smi` is available and CUDA drivers are installed; re-run installer to pick `faiss-gpu-cu12`/`cu11`.
 6. **Force offline**: We auto-detect a local cache and prefer offline loads; you can also set `HF_HUB_OFFLINE=1`.
+
+### Ignored directories (for speed and noise reduction)
+
+`node_modules`, `.venv`, `venv`, `env`, `.env`, `.direnv`, `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.pytype`, `.ipynb_checkpoints`, `build`, `dist`, `out`, `public`, `.next`, `.nuxt`, `.svelte-kit`, `.angular`, `.astro`, `.vite`, `.cache`, `.parcel-cache`, `.turbo`, `coverage`, `.coverage`, `.nyc_output`, `.gradle`, `.idea`, `.vscode`, `.docusaurus`, `.vercel`, `.serverless`, `.terraform`, `.mvn`, `.tox`, `target`, `bin`, `obj`
 
 ## Contributing
 
