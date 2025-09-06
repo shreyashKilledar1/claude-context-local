@@ -3,11 +3,28 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "claude-embedding-search"
+name = "claude-context-local"
 version = "0.1.0"
-description = "Add your description here"
+description = "Local semantic code search for Claude Code (MCP) using EmbeddingGemma, FAISS, and AST/tree-sitter chunking. 100% local embeddings and indexing."
 readme = "README.md"
 requires-python = ">=3.12"
+authors = [
+    { name = "Farhan Ali Raza" }
+]
+maintainers = [
+    { name = "Farhan Ali Raza" }
+]
+keywords = [
+    "semantic-search",
+    "code-search",
+    "embeddings",
+    "faiss",
+    "mcp",
+    "claude",
+    "tree-sitter",
+    "chunking",
+    "python",
+]
 dependencies = [
     "click>=8.2.1",
     "faiss-cpu>=1.12.0",
@@ -27,6 +44,21 @@ dependencies = [
     "tree-sitter-languages>=1.10.0",
     "tree-sitter-rust>=0.24.0",
 ]
+
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+Homepage = "https://github.com/FarhanAliRaza/claude-context-local"
+Repository = "https://github.com/FarhanAliRaza/claude-context-local"
+Documentation = "https://github.com/FarhanAliRaza/claude-context-local#readme"
+Issues = "https://github.com/FarhanAliRaza/claude-context-local/issues"
 
 [tool.setuptools.packages.find]
 include = ["claude_embedding_search*"]

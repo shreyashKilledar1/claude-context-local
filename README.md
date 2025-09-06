@@ -253,7 +253,7 @@ This is a research project focused on intelligent code chunking and search. Feel
 
 ## License
 
-MIT License - feel free to modify and use as needed.
+Licensed under the GNU General Public License v3.0 (GPL-3.0). See the `LICENSE` file for details.
 
 ## Inspiration
 
