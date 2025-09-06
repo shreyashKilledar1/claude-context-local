@@ -41,6 +41,7 @@ class CodeIndexManager:
         self._metadata_db = None
         self._chunk_ids = []
         self._logger = logging.getLogger(__name__)
+        self._on_gpu = False
         
         # Check dependencies
         self._check_dependencies()
@@ -80,6 +81,8 @@ class CodeIndexManager:
         if self.index_path.exists():
             self._logger.info(f"Loading existing index from {self.index_path}")
             self._index = faiss.read_index(str(self.index_path))
+            # If GPU support is available, optionally move to GPU for runtime speed
+            self._maybe_move_index_to_gpu()
             
             # Load chunk IDs
             if self.chunk_id_path.exists():
@@ -105,6 +108,7 @@ class CodeIndexManager:
             raise ValueError(f"Unsupported index type: {index_type}")
         
         self._logger.info(f"Created {index_type} index with dimension {embedding_dimension}")
+        self._maybe_move_index_to_gpu()
     
     def add_embeddings(self, embedding_results: List[EmbeddingResult]) -> None:
         """Add embeddings to the index and metadata to the database."""
@@ -155,6 +159,32 @@ class CodeIndexManager:
         
         # Update statistics
         self._update_stats()
+
+    def _gpu_is_available(self) -> bool:
+        """Check if GPU FAISS support is available and GPUs are present."""
+        try:
+            if not hasattr(faiss, 'StandardGpuResources'):
+                return False
+            get_num_gpus = getattr(faiss, 'get_num_gpus', None)
+            if get_num_gpus is None:
+                return False
+            return get_num_gpus() > 0
+        except Exception:
+            return False
+
+    def _maybe_move_index_to_gpu(self) -> None:
+        """Move the current index to GPU if supported. No-op if already on GPU or unsupported."""
+        if self._index is None or self._on_gpu:
+            return
+        if not self._gpu_is_available():
+            return
+        try:
+            # Move index to all GPUs for faster add/search
+            self._index = faiss.index_cpu_to_all_gpus(self._index)
+            self._on_gpu = True
+            self._logger.info("FAISS index moved to GPU(s)")
+        except Exception as e:
+            self._logger.warning(f"Failed to move FAISS index to GPU, continuing on CPU: {e}")
     
     def search(
         self, 
@@ -313,8 +343,21 @@ class CodeIndexManager:
     def save_index(self):
         """Save the FAISS index and chunk IDs to disk."""
         if self._index is not None:
-            faiss.write_index(self._index, str(self.index_path))
-            self._logger.info(f"Saved index to {self.index_path}")
+            try:
+                index_to_write = self._index
+                # If on GPU, convert to CPU before saving
+                if self._on_gpu and hasattr(faiss, 'index_gpu_to_cpu'):
+                    index_to_write = faiss.index_gpu_to_cpu(self._index)
+                faiss.write_index(index_to_write, str(self.index_path))
+                self._logger.info(f"Saved index to {self.index_path}")
+            except Exception as e:
+                self._logger.warning(f"Failed to save GPU index directly, attempting CPU fallback: {e}")
+                try:
+                    cpu_index = faiss.index_gpu_to_cpu(self._index)
+                    faiss.write_index(cpu_index, str(self.index_path))
+                    self._logger.info(f"Saved index to {self.index_path} (CPU fallback)")
+                except Exception as e2:
+                    self._logger.error(f"Failed to save FAISS index: {e2}")
         
         # Save chunk IDs
         with open(self.chunk_id_path, 'wb') as f:

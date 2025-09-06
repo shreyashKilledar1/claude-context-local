@@ -75,14 +75,22 @@ class MultiLanguageChunker:
             return []
         
         suffix = Path(file_path).suffix.lower()
-        
-        # Use AST chunker for Python
-        if suffix == '.py' and self.python_chunker:
+
+        # Prefer tree-sitter for Python; fallback to AST if TS not available
+        if suffix == '.py':
             try:
-                return self.python_chunker.chunk_file(file_path)
+                tree_chunks = self.tree_sitter_chunker.chunk_file(file_path)
+                if tree_chunks:
+                    return self._convert_tree_chunks(tree_chunks, file_path)
             except Exception as e:
-                logger.warning(f"AST chunking failed for {file_path}: {e}, falling back to tree-sitter")
-                # Fall through to tree-sitter
+                logger.warning(f"Tree-sitter chunking failed for {file_path}: {e}, falling back to AST")
+            # Fallback to AST if configured
+            if self.python_chunker:
+                try:
+                    return self.python_chunker.chunk_file(file_path)
+                except Exception as e:
+                    logger.error(f"AST chunking also failed for {file_path}: {e}")
+                return []
         
         # Use tree-sitter for all other languages (and Python fallback)
         try:
