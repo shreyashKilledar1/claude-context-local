@@ -32,8 +32,10 @@ fi
 
 # 3) Clone or update repository
 mkdir -p "${PROJECT_DIR}"
+IS_UPDATE=0
 if [[ -d "${PROJECT_DIR}/.git" ]]; then
   print "Found existing installation at ${PROJECT_DIR}"
+  IS_UPDATE=1
   
   # Check if there are uncommitted changes
   if ! git -C "${PROJECT_DIR}" diff-index --quiet HEAD -- 2>/dev/null; then
@@ -55,6 +57,7 @@ if [[ -d "${PROJECT_DIR}/.git" ]]; then
         print "Removing ${PROJECT_DIR} for clean reinstall..."
         rm -rf "${PROJECT_DIR}"
         git clone "${REPO_URL}" "${PROJECT_DIR}"
+        IS_UPDATE=0  # Treat as fresh install
         ;;
       u|U|*)
         print "Stashing changes and updating..."
@@ -74,6 +77,7 @@ if [[ -d "${PROJECT_DIR}/.git" ]]; then
 else
   print "Cloning ${REPO_URL} to ${PROJECT_DIR}"
   git clone "${REPO_URL}" "${PROJECT_DIR}"
+  IS_UPDATE=0
 fi
 
 # 4) Install Python dependencies
@@ -119,21 +123,62 @@ print "Downloading embedding model to ${STORAGE_DIR}"
 mkdir -p "${STORAGE_DIR}"
 (cd "${PROJECT_DIR}" && uv run scripts/download_model_standalone.py --storage-dir "${STORAGE_DIR}" --model "${MODEL_NAME}" -v)
 
-hr; print "Install complete"; hr
-cat <<EOF
-Project location : ${PROJECT_DIR}
-Storage location : ${STORAGE_DIR} (embeddings preserved across updates)
+# Colors for better visibility
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m' # No Color
 
-Add MCP server to Claude Code (stdio mode):
-  claude mcp add code-search --scope user -- uv run --directory ${PROJECT_DIR} python mcp_server/server.py
-
-Then in Claude Code, run:
-  index this codebase for indexing
-
-Notes:
-- Embeddings are stored in ${STORAGE_DIR} and preserved across updates
-- Only ${PROJECT_DIR} is updated; your indexed projects remain intact
-- To update later, re-run this installer
-EOF
+if [[ "${IS_UPDATE}" -eq 1 ]]; then
+  hr; printf "${GREEN}${BOLD}✅ Update complete!${NC}\n"; hr
+  
+  printf "${BLUE}📍 Locations:${NC}\n"
+  printf "  Project: ${PROJECT_DIR}\n"
+  printf "  Storage: ${STORAGE_DIR} ${GREEN}(embeddings preserved ✓)${NC}\n\n"
+  
+  printf "${RED}${BOLD}🔄 IMPORTANT: Re-register MCP server after updates${NC}\n"
+  printf "${YELLOW}Run these commands:${NC}\n\n"
+  
+  printf "${BOLD}1) Remove old server:${NC}\n"
+  printf "   ${BLUE}claude mcp remove code-search${NC}\n\n"
+  
+  printf "${BOLD}2) Add updated server:${NC}\n"
+  printf "   ${BLUE}claude mcp add code-search --scope user -- uv run --directory ${PROJECT_DIR} python mcp_server/server.py${NC}\n\n"
+  
+  printf "${BOLD}3) Verify connection:${NC}\n"
+  printf "   ${BLUE}claude mcp list${NC}\n"
+  printf "   ${GREEN}Look for: code-search ... ✓ Connected${NC}\n\n"
+  
+  printf "${BOLD}4) Then in Claude Code:${NC}\n"
+  printf "   ${BLUE}index this codebase${NC}\n\n"
+  
+  printf "${YELLOW}💡 Notes:${NC}\n"
+  printf "- Your embeddings and indexed projects are preserved\n"
+  printf "- Only the code was updated; your data remains intact\n"
+else
+  hr; printf "${GREEN}${BOLD}✅ Install complete!${NC}\n"; hr
+  
+  printf "${BLUE}📍 Locations:${NC}\n"
+  printf "  Project: ${PROJECT_DIR}\n"
+  printf "  Storage: ${STORAGE_DIR}\n\n"
+  
+  printf "${BOLD}Next steps:${NC}\n\n"
+  
+  printf "${BOLD}1) Add MCP server to Claude Code:${NC}\n"
+  printf "   ${BLUE}claude mcp add code-search --scope user -- uv run --directory ${PROJECT_DIR} python mcp_server/server.py${NC}\n\n"
+  
+  printf "${BOLD}2) Verify connection:${NC}\n"
+  printf "   ${BLUE}claude mcp list${NC}\n"
+  printf "   ${GREEN}Look for: code-search ... ✓ Connected${NC}\n\n"
+  
+  printf "${BOLD}3) Then in Claude Code:${NC}\n"
+  printf "   ${BLUE}index this codebase${NC}\n\n"
+  
+  printf "${YELLOW}💡 Notes:${NC}\n"
+  printf "- To update later, re-run this installer\n"
+  printf "- Your embeddings will be stored in ${STORAGE_DIR}\n"
+fi
 
 
