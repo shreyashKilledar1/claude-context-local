@@ -88,7 +88,7 @@ The installer will:
 - Installs `uv` if missing and creates a project venv
 - Clones/updates `claude-context-local` in `~/.local/share/claude-context-local`
 - Installs Python dependencies with `uv sync`
-- Downloads the EmbeddingGemma model (~0.3–1.2 GB) if not already cached
+- Downloads the EmbeddingGemma model (~1.2–1.3 GB) if not already cached
 - Tries to install `faiss-gpu` if an NVIDIA GPU is detected (interactive mode only)
 - **Preserves all your indexed projects and embeddings** across updates
 
@@ -238,7 +238,7 @@ Data is stored in the configured storage directory:
 
 ## Performance
 
-- **Model size**: ~300MB–1.2GB (EmbeddingGemma-300m and caches)
+- **Model size**: ~1.2GB (EmbeddingGemma-300m and caches)
 - **Embedding dimension**: 768 (can be reduced for speed)
 - **Index types**: Flat (exact) or IVF (approximate) based on dataset size
 - **Batch processing**: Configurable batch sizes for embedding generation
@@ -279,4 +279,4 @@ Licensed under the GNU General Public License v3.0 (GPL-3.0). See the `LICENSE` 
 
 ## Inspiration
 
-This project draws inspiration from [zilliztech/claude-context](https://github.com/zilliztech/claude-context). We adapted the concepts to a Python implementation with fully local embeddings.
+This project draws inspiration from [zilliztech/claude-context](https://github.com/zilliztech/claude-context). I adapted the concepts to a Python implementation with fully local embeddings.
