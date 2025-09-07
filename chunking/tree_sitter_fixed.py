@@ -172,12 +172,16 @@ class LanguageChunker(ABC):
         tree = self.parser.parse(source_bytes)
         chunks = []
         
-        def traverse(node, depth=0):
+        def traverse(node, depth=0, parent_info=None):
             """Recursively traverse the tree and extract chunks."""
             if self.should_chunk_node(node):
                 start_line, end_line = self.get_line_numbers(node)
                 content = self.get_node_text(node, source_bytes)
                 metadata = self.extract_metadata(node, source_bytes)
+                
+                # Add parent information if available
+                if parent_info:
+                    metadata.update(parent_info)
                 
                 chunk = TreeSitterChunk(
                     content=content,
@@ -189,12 +193,21 @@ class LanguageChunker(ABC):
                 )
                 chunks.append(chunk)
                 
-                # Don't traverse children of chunked nodes
+                # For classes, continue traversing to find methods
+                # For other chunked nodes, stop traversal
+                if node.type in ['class_definition', 'class_declaration']:
+                    # Pass class info to children
+                    class_info = {
+                        'parent_name': metadata.get('name'),
+                        'parent_type': 'class'
+                    }
+                    for child in node.children:
+                        traverse(child, depth + 1, class_info)
                 return
             
-            # Traverse children
+            # Traverse children, passing along parent info
             for child in node.children:
-                traverse(child, depth + 1)
+                traverse(child, depth + 1, parent_info)
         
         traverse(tree.root_node)
         
@@ -253,6 +266,11 @@ class PythonChunker(LanguageChunker):
                             metadata['name'] = self.get_node_text(subchild, source)
                             break
         
+        # Extract docstring for functions and classes
+        docstring = self._extract_docstring(node, source)
+        if docstring:
+            metadata['docstring'] = docstring
+        
         # Count parameters for functions
         if node.type == 'function_definition' or (node.type == 'decorated_definition' and any(c.type == 'function_definition' for c in node.children)):
             for child in node.children:
@@ -263,6 +281,40 @@ class PythonChunker(LanguageChunker):
                     break
         
         return metadata
+    
+    def _extract_docstring(self, node: Any, source: bytes) -> Optional[str]:
+        """Extract docstring from function or class definition."""
+        # Find the body/block of the function or class
+        body_node = None
+        for child in node.children:
+            if child.type == 'block':
+                body_node = child
+                break
+            elif child.type in ['function_definition', 'class_definition']:
+                # Handle decorated definitions
+                for subchild in child.children:
+                    if subchild.type == 'block':
+                        body_node = subchild
+                        break
+        
+        if not body_node or not body_node.children:
+            return None
+        
+        # Check if the first statement in the body is a string literal
+        first_statement = body_node.children[0]
+        if first_statement.type == 'expression_statement':
+            # Check if it contains a string literal
+            for child in first_statement.children:
+                if child.type == 'string':
+                    docstring_text = self.get_node_text(child, source)
+                    # Clean up the docstring - remove quotes and normalize whitespace
+                    if docstring_text.startswith('"""') or docstring_text.startswith("'''"):
+                        docstring_text = docstring_text[3:-3]
+                    elif docstring_text.startswith('"') or docstring_text.startswith("'"):
+                        docstring_text = docstring_text[1:-1]
+                    return docstring_text.strip()
+        
+        return None
 
 
 class JavaScriptChunker(LanguageChunker):

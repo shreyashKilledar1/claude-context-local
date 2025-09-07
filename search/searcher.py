@@ -108,8 +108,8 @@ class IntelligentSearcher:
         # Generate query embedding
         query_embedding = self.embedder.embed_query(optimized_query)
         
-        # Search with expanded result set for better filtering
-        search_k = min(k * 3, 50)
+        # Search with expanded result set for better filtering and recall
+        search_k = min(k * 10, 200)  # Increased from k*3 to k*10 for better recall
         self._logger.info(f"Query embedding shape: {query_embedding.shape if hasattr(query_embedding, 'shape') else 'unknown'}")
         self._logger.info(f"Using original filters: {filters}")
         self._logger.info(f"Calling index_manager.search with k={search_k}")
@@ -136,31 +136,9 @@ class IntelligentSearcher:
     
     def _optimize_query(self, query: str) -> str:
         """Optimize query for better embedding generation."""
-        # Basic query cleaning
-        query = query.strip()
-        
-        # Expand common abbreviations
-        expansions = {
-            'auth': 'authentication',
-            'db': 'database', 
-            'api': 'application programming interface',
-            'http': 'hypertext transfer protocol',
-            'json': 'javascript object notation',
-            'sql': 'structured query language'
-        }
-        
-        words = query.lower().split()
-        expanded_words = [expansions.get(word, word) for word in words]
-        
-        # Reconstruct with original casing where possible
-        optimized = []
-        for i, word in enumerate(query.split()):
-            if word.lower() in expansions:
-                optimized.append(expansions[word.lower()])
-            else:
-                optimized.append(word)
-        
-        return ' '.join(optimized)
+        # Basic query cleaning only - avoid expanding technical terms
+        # that might distort code-specific queries
+        return query.strip()
     
     def _detect_query_intent(self, query: str) -> List[str]:
         """Detect the intent/domain of the search query."""
@@ -250,27 +228,58 @@ class IntelligentSearcher:
         def calculate_rank_score(result: SearchResult) -> float:
             score = result.similarity_score
             
-            # Boost based on chunk type relevance
-            type_boosts = {
-                'function': 1.1,
-                'method': 1.1,
-                'class': 1.05,
-                'module_level': 0.95
-            }
+            # Detect if query looks like an entity/class name
+            query_tokens = self._normalize_to_tokens(original_query.lower())
+            is_entity_query = self._is_entity_like_query(original_query, query_tokens)
+            has_class_keyword = 'class' in original_query.lower()
+            
+            # Dynamic chunk type boosts based on query type
+            if has_class_keyword:
+                # Strong preference for classes when "class" is mentioned
+                type_boosts = {
+                    'class': 1.3,
+                    'function': 1.05,
+                    'method': 1.05,
+                    'module': 0.9
+                }
+            elif is_entity_query:
+                # Moderate preference for classes on entity-like queries
+                type_boosts = {
+                    'class': 1.15,
+                    'function': 1.1,
+                    'method': 1.1,
+                    'module': 0.92
+                }
+            else:
+                # Default boosts for general queries
+                type_boosts = {
+                    'function': 1.1,
+                    'method': 1.1,
+                    'class': 1.05,
+                    'module': 0.95
+                }
+            
             score *= type_boosts.get(result.chunk_type, 1.0)
+            
+            # Enhanced name matching with token-based comparison
+            name_boost = self._calculate_name_boost(result.name, original_query, query_tokens)
+            score *= name_boost
+            
+            # Path/filename relevance boost
+            path_boost = self._calculate_path_boost(result.relative_path, query_tokens)
+            score *= path_boost
             
             # Boost based on tag matches
             if intent_tags and result.tags:
                 tag_overlap = len(set(intent_tags) & set(result.tags))
                 score *= (1.0 + tag_overlap * 0.1)
             
-            # Boost based on docstring presence
+            # Boost based on docstring presence (but less for module chunks on entity queries)
             if result.docstring:
-                score *= 1.05
-            
-            # Boost based on name relevance
-            if result.name and original_query.lower() in result.name.lower():
-                score *= 1.2
+                if is_entity_query and result.chunk_type == 'module':
+                    score *= 1.02  # Smaller boost for module docstrings on entity queries
+                else:
+                    score *= 1.05
             
             # Slight penalty for very complex chunks (might be too specific)
             if len(result.content_preview) > 1000:
@@ -281,6 +290,95 @@ class IntelligentSearcher:
         # Sort by calculated rank score
         ranked_results = sorted(results, key=calculate_rank_score, reverse=True)
         return ranked_results
+    
+    def _normalize_to_tokens(self, text: str) -> List[str]:
+        """Convert text to normalized tokens, handling CamelCase."""
+        import re
+        
+        # Split CamelCase and snake_case
+        text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
+        text = text.replace('_', ' ').replace('-', ' ')
+        
+        # Extract alphanumeric tokens
+        tokens = re.findall(r'\w+', text.lower())
+        return tokens
+    
+    def _is_entity_like_query(self, query: str, query_tokens: List[str]) -> bool:
+        """Detect if query looks like an entity/type name."""
+        # Short queries with 1-3 tokens that don't contain action words
+        if len(query_tokens) > 3:
+            return False
+        
+        action_words = {
+            'find', 'search', 'get', 'show', 'list', 'how', 'what', 'where', 'when',
+            'create', 'build', 'make', 'handle', 'process', 'manage', 'implement'
+        }
+        
+        # If any token is an action word, it's not an entity query
+        if any(token in action_words for token in query_tokens):
+            return False
+        
+        # If original query has CamelCase or looks like a class name, it's entity-like
+        import re
+        if re.search(r'[A-Z][a-z]+[A-Z]', query):  # CamelCase pattern
+            return True
+        
+        return len(query_tokens) <= 2  # Short noun phrases
+    
+    def _calculate_name_boost(self, name: Optional[str], original_query: str, query_tokens: List[str]) -> float:
+        """Calculate boost based on name matching with robust token comparison."""
+        if not name:
+            return 1.0
+        
+        name_tokens = self._normalize_to_tokens(name)
+        
+        # Exact match (case insensitive)
+        if original_query.lower() == name.lower():
+            return 1.4
+        
+        # Token overlap calculation
+        query_set = set(query_tokens)
+        name_set = set(name_tokens)
+        
+        if not query_set or not name_set:
+            return 1.0
+        
+        overlap = len(query_set & name_set)
+        total_query_tokens = len(query_set)
+        
+        if overlap == 0:
+            return 1.0
+        
+        # Strong boost for high overlap
+        overlap_ratio = overlap / total_query_tokens
+        if overlap_ratio >= 0.8:  # 80%+ of query tokens match
+            return 1.3
+        elif overlap_ratio >= 0.5:  # 50%+ match
+            return 1.2
+        elif overlap_ratio >= 0.3:  # 30%+ match
+            return 1.1
+        else:
+            return 1.05
+    
+    def _calculate_path_boost(self, relative_path: str, query_tokens: List[str]) -> float:
+        """Calculate boost based on path/filename relevance."""
+        if not relative_path or not query_tokens:
+            return 1.0
+        
+        # Extract path components and filename
+        path_parts = relative_path.lower().replace('/', ' ').replace('\\', ' ')
+        path_tokens = self._normalize_to_tokens(path_parts)
+        
+        # Check for token overlap with path
+        query_set = set(query_tokens)
+        path_set = set(path_tokens)
+        
+        overlap = len(query_set & path_set)
+        if overlap > 0:
+            # Modest boost for path relevance
+            return 1.0 + (overlap * 0.05)  # 5% boost per matching token
+        
+        return 1.0
     
     def search_by_file_pattern(
         self, 

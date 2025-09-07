@@ -137,10 +137,12 @@ class MultiLanguageChunker:
             
             chunk_type = chunk_type_map.get(tchunk.node_type, tchunk.node_type)
             
-            # Extract parent name for methods
-            parent_name = None
-            if chunk_type == 'method':
-                parent_name = tchunk.metadata.get('parent_name')
+            # Extract parent name and adjust chunk type for methods
+            parent_name = tchunk.metadata.get('parent_name')
+            
+            # If we have a parent_name and it's a function, it's actually a method
+            if parent_name and chunk_type == 'function':
+                chunk_type = 'method'
             
             # Build folder structure from file path
             path = Path(file_path)

@@ -94,49 +94,70 @@ class CodeEmbedder:
             self._logger.error(f"Failed to load model: {e}")
             raise
     
-    def create_embedding_prompt(self, chunk: CodeChunk) -> str:
-        """Create an optimized prompt for embedding generation."""
-        # Use task-specific prompts as recommended by EmbeddingGemma
-        base_prompt = "task: code search | "
+    def create_embedding_content(self, chunk: CodeChunk, max_chars: int = 6000) -> str:
+        """Create clean content for embedding generation with size limits."""
+        # Prepare clean content without fabricated headers
+        content_parts = []
         
-        # Add context based on chunk type
-        if chunk.chunk_type == 'function':
-            context = f"function {chunk.name}"
-            if chunk.parent_name:
-                context = f"method {chunk.name} in class {chunk.parent_name}"
-        elif chunk.chunk_type == 'class':
-            context = f"class {chunk.name}"
-        elif chunk.chunk_type == 'method':
-            context = f"method {chunk.name} in class {chunk.parent_name}"
-        else:
-            context = f"{chunk.chunk_type} code"
-        
-        # Add file context
-        file_context = f"from {chunk.relative_path}"
-        
-        # Add semantic tags if available
-        tags_context = ""
-        if chunk.tags:
-            tags_context = f" ({', '.join(chunk.tags)})"
-        
-        # Combine docstring if available
-        docstring_context = ""
+        # Add docstring if available (important context for code understanding)
+        docstring_budget = 300
         if chunk.docstring:
-            # Truncate docstring to avoid token limit
-            docstring_preview = chunk.docstring[:100] + "..." if len(chunk.docstring) > 100 else chunk.docstring
-            docstring_context = f" - {docstring_preview}"
+            # Keep docstring but limit length to stay within token budget
+            docstring = chunk.docstring[:docstring_budget] + "..." if len(chunk.docstring) > docstring_budget else chunk.docstring
+            content_parts.append(f'"""{docstring}"""')
         
-        prompt = f"{base_prompt}{context} {file_context}{tags_context}{docstring_context}\n\n{chunk.content}"
+        # Calculate remaining budget for code content
+        docstring_len = len(content_parts[0]) if content_parts else 0
+        remaining_budget = max_chars - docstring_len - 10  # small buffer
         
-        return prompt
+        # Add the actual code content, truncating if necessary
+        if len(chunk.content) <= remaining_budget:
+            content_parts.append(chunk.content)
+        else:
+            # Smart truncation: try to keep function signature and important parts
+            lines = chunk.content.split('\n')
+            if len(lines) > 3:
+                # Keep first few lines (signature) and last few lines (return/conclusion)
+                head_lines = []
+                tail_lines = []
+                current_length = docstring_len
+                
+                # Add head lines (function signature, early logic)
+                for i, line in enumerate(lines[:min(len(lines)//2, 20)]):
+                    if current_length + len(line) + 1 > remaining_budget * 0.7:
+                        break
+                    head_lines.append(line)
+                    current_length += len(line) + 1
+                
+                # Add tail lines (return statements, conclusions) if space remains
+                remaining_space = remaining_budget - current_length - 20  # buffer for "..."
+                for line in reversed(lines[-min(len(lines)//3, 10):]):
+                    if len('\n'.join(tail_lines)) + len(line) + 1 > remaining_space:
+                        break
+                    tail_lines.insert(0, line)
+                
+                if tail_lines:
+                    truncated_content = '\n'.join(head_lines) + '\n    # ... (truncated) ...\n' + '\n'.join(tail_lines)
+                else:
+                    truncated_content = '\n'.join(head_lines) + '\n    # ... (truncated) ...'
+                content_parts.append(truncated_content)
+            else:
+                # For short chunks, just truncate at character limit
+                content_parts.append(chunk.content[:remaining_budget] + "..." if len(chunk.content) > remaining_budget else chunk.content)
+        
+        return '\n'.join(content_parts)
     
     def embed_chunk(self, chunk: CodeChunk) -> EmbeddingResult:
         """Generate embedding for a single code chunk."""
-        prompt = self.create_embedding_prompt(chunk)
+        content = self.create_embedding_content(chunk)
         
-        # Use encode_document for code content
-        # Disable progress bars for small, single-item encode
-        embedding = self.model.encode_document([prompt], show_progress_bar=False)[0]
+        # Use encode with proper prompt_name for code retrieval
+        # EmbeddingGemma uses "Retrieval-document" for document/code content
+        embedding = self.model.encode(
+            [content], 
+            prompt_name="Retrieval-document",
+            show_progress_bar=False
+        )[0]
         
         # Create unique chunk ID
         chunk_id = f"{chunk.relative_path}:{chunk.start_line}-{chunk.end_line}:{chunk.chunk_type}"
@@ -176,10 +197,14 @@ class CodeEmbedder:
         # Process in batches for efficiency
         for i in range(0, len(chunks), batch_size):
             batch = chunks[i:i + batch_size]
-            batch_prompts = [self.create_embedding_prompt(chunk) for chunk in batch]
+            batch_contents = [self.create_embedding_content(chunk) for chunk in batch]
             
-            # Generate embeddings for batch
-            batch_embeddings = self.model.encode_document(batch_prompts, show_progress_bar=False)
+            # Generate embeddings for batch using proper prompt_name
+            batch_embeddings = self.model.encode(
+                batch_contents, 
+                prompt_name="Retrieval-document",
+                show_progress_bar=False
+            )
             
             # Create results
             for j, (chunk, embedding) in enumerate(zip(batch, batch_embeddings)):
@@ -218,11 +243,13 @@ class CodeEmbedder:
     
     def embed_query(self, query: str) -> np.ndarray:
         """Generate embedding for a search query."""
-        # Use query-specific prompt
-        query_prompt = f"task: code search | query: {query}"
-        
-        # Use encode_query for search queries
-        embedding = self.model.encode_query(query_prompt)
+        # Use encode with proper prompt_name for code retrieval queries
+        # EmbeddingGemma uses "InstructionRetrieval" for code retrieval tasks
+        embedding = self.model.encode(
+            [query], 
+            prompt_name="InstructionRetrieval",
+            show_progress_bar=False
+        )[0]
         return embedding
     
     def get_model_info(self) -> Dict[str, Any]:
