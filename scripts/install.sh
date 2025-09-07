@@ -88,35 +88,31 @@ else
   print "Skipping dependency update (keeping current version)"
 fi
 
-# 5) Prefer FAISS GPU wheels on NVIDIA machines (skip in CI/piped mode)
-if [ -t 0 ] && [[ "${SKIP_GPU:-0}" != "1" ]]; then
-  print "Checking for NVIDIA GPU to install FAISS GPU wheels (optional)"
-  (
-    set +e
-    GPU_DETECTED=0
-    if command -v nvidia-smi >/dev/null 2>&1; then
-      GPU_DETECTED=1
-    fi
-    if [[ "${GPU_DETECTED}" -eq 1 ]]; then
-      echo "NVIDIA GPU detected. Attempting to install faiss-gpu wheels (30s timeout)..."
-      # Try CUDA 12 wheels first, then CUDA 11, fallback to CPU with timeout
-      if timeout 30 bash -c "cd '${PROJECT_DIR}' && uv add faiss-gpu-cu12" >/dev/null 2>&1; then
-        echo "Installed faiss-gpu-cu12"
-        (cd "${PROJECT_DIR}" && uv remove faiss-cpu) >/dev/null 2>&1 || true
-      elif timeout 30 bash -c "cd '${PROJECT_DIR}' && uv add faiss-gpu-cu11" >/dev/null 2>&1; then
-        echo "Installed faiss-gpu-cu11"
-        (cd "${PROJECT_DIR}" && uv remove faiss-cpu) >/dev/null 2>&1 || true
-      else
-        echo "Could not install faiss-gpu wheels (timeout or failed). Keeping CPU build."
-      fi
+# 5) Prefer FAISS GPU wheels on NVIDIA machines
+print "Checking for NVIDIA GPU to install FAISS GPU wheels (optional)"
+(
+  set +e
+  GPU_DETECTED=0
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    GPU_DETECTED=1
+  fi
+  if [[ "${GPU_DETECTED}" -eq 1 ]]; then
+    echo "NVIDIA GPU detected. Attempting to install faiss-gpu wheels (30s timeout)..."
+    # Try CUDA 12 wheels first, then CUDA 11, fallback to CPU with timeout
+    if timeout 30 bash -c "cd '${PROJECT_DIR}' && uv add faiss-gpu-cu12" >/dev/null 2>&1; then
+      echo "Installed faiss-gpu-cu12"
+      (cd "${PROJECT_DIR}" && uv remove faiss-cpu) >/dev/null 2>&1 || true
+    elif timeout 30 bash -c "cd '${PROJECT_DIR}' && uv add faiss-gpu-cu11" >/dev/null 2>&1; then
+      echo "Installed faiss-gpu-cu11"
+      (cd "${PROJECT_DIR}" && uv remove faiss-cpu) >/dev/null 2>&1 || true
     else
-      echo "No NVIDIA GPU detected. Using faiss-cpu (default)."
+      echo "Could not install faiss-gpu wheels (timeout or failed). Keeping CPU build."
     fi
-    set -e
-  )
-else
-  print "Skipping GPU detection (piped mode or SKIP_GPU=1). Using faiss-cpu."
-fi
+  else
+    echo "No NVIDIA GPU detected. Using faiss-cpu (default)."
+  fi
+  set -e
+)
 
 # 6) Download model to storage dir
 print "Downloading embedding model to ${STORAGE_DIR}"
@@ -155,8 +151,8 @@ if [[ "${IS_UPDATE}" -eq 1 ]]; then
   printf "   ${BLUE}index this codebase${NC}\n\n"
   
   printf "${YELLOW}💡 Notes:${NC}\n"
-  printf "- Your embeddings and indexed projects are preserved\n"
-  printf "- Only the code was updated; your data remains intact\n"
+  printf "%s\n" "- Your embeddings and indexed projects are preserved"
+  printf "%s\n" "- Only the code was updated; your data remains intact"
 else
   hr; printf "${GREEN}${BOLD}✅ Install complete!${NC}\n"; hr
   
@@ -177,8 +173,8 @@ else
   printf "   ${BLUE}index this codebase${NC}\n\n"
   
   printf "${YELLOW}💡 Notes:${NC}\n"
-  printf "- To update later, re-run this installer\n"
-  printf "- Your embeddings will be stored in ${STORAGE_DIR}\n"
+  printf "%s\n" "- To update later, re-run this installer"
+  printf "%s\n" "- Your embeddings will be stored in ${STORAGE_DIR}"
 fi
 
 
