@@ -33,18 +33,47 @@ fi
 # 3) Clone or update repository
 mkdir -p "${PROJECT_DIR}"
 if [[ -d "${PROJECT_DIR}/.git" ]]; then
-  print "Updating existing repository at ${PROJECT_DIR}"
-  git -C "${PROJECT_DIR}" remote set-url origin "${REPO_URL}"
-  git -C "${PROJECT_DIR}" fetch --tags --prune
-  git -C "${PROJECT_DIR}" pull --ff-only
+  print "Found existing installation at ${PROJECT_DIR}"
+  
+  # Check if there are uncommitted changes
+  if ! git -C "${PROJECT_DIR}" diff-index --quiet HEAD -- 2>/dev/null; then
+    print "WARNING: You have uncommitted changes in ${PROJECT_DIR}"
+    printf "Options:\n  [u] Update anyway (stash changes)\n  [k] Keep current version\n  [d] Delete and reinstall\nChoice [u/k/d]: "
+    read -r choice
+    case "${choice}" in
+      k|K) print "Keeping current installation. Skipping git update."; SKIP_UPDATE=1 ;;
+      d|D) 
+        print "Removing ${PROJECT_DIR} for clean reinstall..."
+        rm -rf "${PROJECT_DIR}"
+        git clone "${REPO_URL}" "${PROJECT_DIR}"
+        ;;
+      u|U|*)
+        print "Stashing changes and updating..."
+        git -C "${PROJECT_DIR}" stash push -m "Auto-stash before installer update $(date)"
+        git -C "${PROJECT_DIR}" remote set-url origin "${REPO_URL}"
+        git -C "${PROJECT_DIR}" fetch --tags --prune
+        git -C "${PROJECT_DIR}" pull --ff-only
+        print "Your changes are stashed. Run 'git stash pop' in ${PROJECT_DIR} to restore them."
+        ;;
+    esac
+  else
+    print "Updating repository..."
+    git -C "${PROJECT_DIR}" remote set-url origin "${REPO_URL}"
+    git -C "${PROJECT_DIR}" fetch --tags --prune
+    git -C "${PROJECT_DIR}" pull --ff-only
+  fi
 else
   print "Cloning ${REPO_URL} to ${PROJECT_DIR}"
   git clone "${REPO_URL}" "${PROJECT_DIR}"
 fi
 
 # 4) Install Python dependencies
-print "Installing Python dependencies with uv"
-(cd "${PROJECT_DIR}" && uv sync)
+if [[ "${SKIP_UPDATE:-0}" != "1" ]]; then
+  print "Installing Python dependencies with uv"
+  (cd "${PROJECT_DIR}" && uv sync)
+else
+  print "Skipping dependency update (keeping current version)"
+fi
 
 # 5) Prefer FAISS GPU wheels on NVIDIA machines
 print "Checking for NVIDIA GPU to install FAISS GPU wheels (optional)"
@@ -57,12 +86,12 @@ print "Checking for NVIDIA GPU to install FAISS GPU wheels (optional)"
   if [[ "${GPU_DETECTED}" -eq 1 ]]; then
     echo "NVIDIA GPU detected. Attempting to install faiss-gpu wheels."
     # Try CUDA 12 wheels first, then CUDA 11, fallback to CPU
-    if uv pip install -p "${PROJECT_DIR}" faiss-gpu-cu12 >/dev/null 2>&1; then
+    if (cd "${PROJECT_DIR}" && uv add faiss-gpu-cu12) >/dev/null 2>&1; then
       echo "Installed faiss-gpu-cu12"
-      uv pip uninstall -y -p "${PROJECT_DIR}" faiss-cpu >/dev/null 2>&1 || true
-    elif uv pip install -p "${PROJECT_DIR}" faiss-gpu-cu11 >/dev/null 2>&1; then
+      (cd "${PROJECT_DIR}" && uv remove faiss-cpu) >/dev/null 2>&1 || true
+    elif (cd "${PROJECT_DIR}" && uv add faiss-gpu-cu11) >/dev/null 2>&1; then
       echo "Installed faiss-gpu-cu11"
-      uv pip uninstall -y -p "${PROJECT_DIR}" faiss-cpu >/dev/null 2>&1 || true
+      (cd "${PROJECT_DIR}" && uv remove faiss-cpu) >/dev/null 2>&1 || true
     else
       echo "Could not install faiss-gpu wheels. Keeping CPU build."
     fi
@@ -80,15 +109,18 @@ mkdir -p "${STORAGE_DIR}"
 hr; print "Install complete"; hr
 cat <<EOF
 Project location : ${PROJECT_DIR}
-Storage location : ${STORAGE_DIR}
+Storage location : ${STORAGE_DIR} (embeddings preserved across updates)
 
 Add MCP server to Claude Code (stdio mode):
-  claude mcp add code-search --scope user -- uv run -p ${PROJECT_DIR} ${PROJECT_DIR}/mcp_server/server.py
+  claude mcp add code-search --scope user -- uv run --directory ${PROJECT_DIR} python mcp_server/server.py
 
 Then in Claude Code, run:
-  index_directory("/absolute/path/to/your/project")
+  index this codebase for indexing
 
-To update later, re-run this installer.
+Notes:
+- Embeddings are stored in ${STORAGE_DIR} and preserved across updates
+- Only ${PROJECT_DIR} is updated; your indexed projects remain intact
+- To update later, re-run this installer
 EOF
 
 

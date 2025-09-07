@@ -33,7 +33,7 @@ An intelligent code search system that uses Google's EmbeddingGemma model and AS
 
 ## Demo
 
-![Demo of local semantic code search](https://github.com/FarhanAliRaza/claude-context-local/releases/download/v0.1/example.gif)
+<img src="https://github.com/FarhanAliRaza/claude-context-local/releases/download/v0.1/example.gif" alt="Demo of local semantic code search" width="900" />
 
 ## Features
 
@@ -79,7 +79,7 @@ What this does:
 ### 1) Register the MCP server (stdio)
 
 ```bash
-claude mcp add code-search --scope user -- uv run -p ~/.local/share/claude-context-local ~/.local/share/claude-context-local/mcp_server/server.py
+claude mcp add code-search --scope user -- uv run --directory ~/.local/share/claude-context-local python mcp_server/server.py
 ```
 
 Then open Claude Code; the server will run in stdio mode inside the `uv` environment.
