@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import List, Optional, Union
 
-from .python_ast_chunker import PythonASTChunker, CodeChunk
+from .python_ast_chunker import CodeChunk
 from .tree_sitter_fixed import TreeSitterChunker, TreeSitterChunk
 
 logger = logging.getLogger(__name__)
@@ -45,7 +45,6 @@ class MultiLanguageChunker:
         """
         self.root_path = root_path
         # Use AST chunker for Python (more mature implementation)
-        self.python_chunker = PythonASTChunker(root_path) if root_path else None
         # Use tree-sitter for other languages
         self.tree_sitter_chunker = TreeSitterChunker()
     
@@ -76,23 +75,8 @@ class MultiLanguageChunker:
         
         suffix = Path(file_path).suffix.lower()
 
-        # Prefer tree-sitter for Python; fallback to AST if TS not available
-        if suffix == '.py':
-            try:
-                tree_chunks = self.tree_sitter_chunker.chunk_file(file_path)
-                if tree_chunks:
-                    return self._convert_tree_chunks(tree_chunks, file_path)
-            except Exception as e:
-                logger.warning(f"Tree-sitter chunking failed for {file_path}: {e}, falling back to AST")
-            # Fallback to AST if configured
-            if self.python_chunker:
-                try:
-                    return self.python_chunker.chunk_file(file_path)
-                except Exception as e:
-                    logger.error(f"AST chunking also failed for {file_path}: {e}")
-                return []
-        
-        # Use tree-sitter for all other languages (and Python fallback)
+     
+        # Use tree-sitter for all  languages 
         try:
             tree_chunks = self.tree_sitter_chunker.chunk_file(file_path)
             # Convert TreeSitterChunk to CodeChunk
