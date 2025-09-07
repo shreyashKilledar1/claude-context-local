@@ -54,7 +54,9 @@ Claude’s code context is powerful, but sending your code to the cloud costs to
 - Disk: 1–2 GB free (model + caches + index)
 - Optional: NVIDIA GPU (CUDA 11/12) for FAISS acceleration; Apple Silicon (MPS) for embedding acceleration. These also speed up running the embedding model with SentenceTransformer, but everything still works on CPU.
 
-## Install (one‑liner)
+## Install & Update
+
+### Install (one‑liner)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/FarhanAliRaza/claude-context-local/main/scripts/install.sh | bash
@@ -66,13 +68,29 @@ If your system doesn't have `curl`, you can use `wget`:
 wget -qO- https://raw.githubusercontent.com/FarhanAliRaza/claude-context-local/main/scripts/install.sh | bash
 ```
 
-What this does:
+### Update existing installation
+
+Run the same install command to update:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/FarhanAliRaza/claude-context-local/main/scripts/install.sh | bash
+```
+
+The installer will:
+
+- Detect your existing installation
+- Preserve your embeddings and indexed projects in `~/.claude_code_search`
+- Stash any local changes automatically (if running via curl)
+- Update the code and dependencies
+
+### What the installer does
 
 - Installs `uv` if missing and creates a project venv
-- Clones `claude-context-local` into `~/.local/share/claude-context-local`
+- Clones/updates `claude-context-local` in `~/.local/share/claude-context-local`
 - Installs Python dependencies with `uv sync`
-- Downloads the EmbeddingGemma model (~0.3–1.2 GB depending on variant)
-- Tries to install `faiss-gpu` if an NVIDIA GPU is detected
+- Downloads the EmbeddingGemma model (~0.3–1.2 GB) if not already cached
+- Tries to install `faiss-gpu` if an NVIDIA GPU is detected (interactive mode only)
+- **Preserves all your indexed projects and embeddings** across updates
 
 ## Quick Start
 
